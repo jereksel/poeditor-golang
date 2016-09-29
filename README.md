@@ -1,2 +1,2 @@
 # poeditor-golang
-wrapper over poeditor api written in golang
+Wrapper over https://poeditor.com API written in golang
