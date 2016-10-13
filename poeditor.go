@@ -1,15 +1,15 @@
 package poeditor
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
-	"errors"
 	"os"
-	"io"
-	"bytes"
-	"mime/multipart"
 )
 
 type Poeditor struct {
@@ -19,7 +19,7 @@ type Poeditor struct {
 
 func New(apiToken string, projectId string) *Poeditor {
 	return &Poeditor{
-		ApiToken: apiToken,
+		ApiToken:  apiToken,
 		ProjectId: projectId,
 	}
 }
@@ -105,10 +105,11 @@ func (t *Poeditor) SyncTerms(terms []*PoTerm) error {
 	return nil
 }
 
-func (t *Poeditor) Export(language Language, filetype FileType) (string, error) {
+func (t *Poeditor) Export(language Language, filetype FileType, filters string) (string, error) {
 	response, err := t.request(actionExportTerms, map[string]string{
 		"language": language.String(),
-		"type": filetype.String(),
+		"type":     filetype.String(),
+		"filters":  filters,
 	})
 	if err != nil {
 		return "", err
@@ -125,11 +126,11 @@ func (t *Poeditor) Upload(pathToFile string, language Language, updateType Updat
 	defer file.Close()
 
 	_, err = t.requestWithFile(pathToFile, map[string]string{
-		"language": language.String(),
-		"updating": updateType.String(),
+		"language":  language.String(),
+		"updating":  updateType.String(),
 		"api_token": t.ApiToken,
-		"action": actionUploadTerms.String(),
-		"id": t.ProjectId,
+		"action":    actionUploadTerms.String(),
+		"id":        t.ProjectId,
 	})
 	if err != nil {
 		return err
@@ -153,7 +154,7 @@ func (t *Poeditor) request(action Action, params map[string]string) (*result, er
 	return t.parseResponse(resp)
 }
 
-func (t *Poeditor) requestWithFile(pathToFile string, params map[string]string) (*result, error){
+func (t *Poeditor) requestWithFile(pathToFile string, params map[string]string) (*result, error) {
 	file, err := os.Open(pathToFile)
 	if err != nil {
 		return nil, err
@@ -194,7 +195,6 @@ func (t *Poeditor) requestWithFile(pathToFile string, params map[string]string) 
 
 	return t.parseResponse(response)
 }
-
 
 func (t *Poeditor) parseResponse(response *http.Response) (*result, error) {
 	bytes, err := ioutil.ReadAll(response.Body)
